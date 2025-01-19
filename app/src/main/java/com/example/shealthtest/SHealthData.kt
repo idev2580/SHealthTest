@@ -82,10 +82,7 @@ data class SleepData(
     val duration:Duration = Duration.ofMillis(0),
     val sleepScore:Int = -1
 )
-data class SleepGoalData(
-    val bedTime:LocalTime = LocalTime.ofSecondOfDay(0),
-    val wakeUpTime:LocalTime = LocalTime.ofSecondOfDay(0)
-)
+
 data class UserProfileData(
     val birthDate:String = "",
     val height:Float = Float.NaN,

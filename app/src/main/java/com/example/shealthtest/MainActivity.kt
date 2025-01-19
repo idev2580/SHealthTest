@@ -124,6 +124,12 @@ suspend fun getActivitySummaryData(store:HealthDataStore):ActivitySummaryData{
     val cBurnDataList = store.aggregateData(cBurnReadRequest).dataList
     val acBurnDataList = store.aggregateData(acBurnReadRequest).dataList
 
+    if(distDataList.isEmpty())
+        return ActivitySummaryData(Duration.ofMillis(0))
+
+    Log.d("SHEALTH_TEST", "cBurnDataList.length = ${cBurnDataList.size}")
+
+
     val totalDistance:Float = distDataList.first().value!!
     val totalActiveTime: Duration = aTimeDataList.first().value!!
     val caloriesBurned:Float = cBurnDataList.first().value!!
@@ -167,9 +173,9 @@ suspend fun getBloodGlucoseData(store:HealthDataStore):BloodGlucoseData{
     val dataList = store.readData(request).dataList
     if(dataList.isEmpty())
         return BloodGlucoseData()
-    val glucoseLvl:Float = dataList.first().getValue(DataType.BloodGlucoseType.GLUCOSE_LEVEL)?:0.0f
-    val mealTime:Instant = dataList.first().getValue(DataType.BloodGlucoseType.MEAL_TIME)?:Instant.now()
-    val inInsulin:Float = dataList.first().getValue(DataType.BloodGlucoseType.INSULIN_INJECTED)?:0.0f
+    val glucoseLvl:Float = dataList.first().getValue(DataType.BloodGlucoseType.GLUCOSE_LEVEL)!!
+    val mealTime:Instant = dataList.first().getValue(DataType.BloodGlucoseType.MEAL_TIME)!!
+    val inInsulin:Float = dataList.first().getValue(DataType.BloodGlucoseType.INSULIN_INJECTED)!!
     //val mealStatus: DataType.BloodGlucoseType.MealStatus = dataList.first().getValue(DataType.BloodGlucoseType.MEAL_STATUS)!!
 
     return BloodGlucoseData(glucoseLvl, mealTime, inInsulin)
@@ -202,11 +208,11 @@ suspend fun getBloodPressureData(store:HealthDataStore):BloodPressureData{
     if(dataList.isEmpty())
         return BloodPressureData()
     return BloodPressureData(
-        dataList.first().getValue(DataType.BloodPressureType.MEAN)?:0.0f,
-        dataList.first().getValue(DataType.BloodPressureType.SYSTOLIC)?:0.0f,
-        dataList.first().getValue(DataType.BloodPressureType.DIASTOLIC)?:0.0f,
-        dataList.first().getValue(DataType.BloodPressureType.PULSE_RATE)?:0,
-        dataList.first().getValue(DataType.BloodPressureType.MEDICATION_TAKEN)?:false
+        dataList.first().getValue(DataType.BloodPressureType.MEAN)!!,
+        dataList.first().getValue(DataType.BloodPressureType.SYSTOLIC)!!,
+        dataList.first().getValue(DataType.BloodPressureType.DIASTOLIC)!!,
+        dataList.first().getValue(DataType.BloodPressureType.PULSE_RATE)!!,
+        dataList.first().getValue(DataType.BloodPressureType.MEDICATION_TAKEN)!!
     )
 }
 suspend fun getBodyComposition(store:HealthDataStore):BodyCompositionData{
@@ -268,39 +274,21 @@ suspend fun getExercise(store:HealthDataStore):ExerciseData{
         totalDuration = totalDuration
     )
 }
-suspend fun getStepForMinute(store:HealthDataStore, since:LocalDateTime):Int{
-    val timeFilter = LocalTimeFilter.of(since, since.plusMinutes(1))
-    val request = DataType.StepsType
-        .TOTAL
+suspend fun getSteps(store:HealthDataStore){
+    val timeFilter = LocalTimeFilter.of(
+        LocalDateTime.of(2025,1,15,17,50),
+        LocalDateTime.of(2025,1,15,17,51)
+    )
+
+    val request = DataType.StepsType.TOTAL
         .requestBuilder
         .setLocalTimeFilter(timeFilter)
+        .setOrdering(Ordering.DESC)
         .build()
-    val rVal = store.aggregateData(request).dataList
-    if(rVal.isEmpty()){
-        return 0
-    } else {
-        if(rVal.size == 1){
-            val steps = rVal.first().value!!.toInt()
-            return steps
-        } else {
-            Log.e("SHEALTH_TEST", "AGGREGATED STEP DATA HAS MORE THAN 1 : ${since}")
-            return 0
-        }
-    }
-}
-suspend fun getStepForDayPerMinute(store:HealthDataStore, date:LocalDate){
-    val year = date.year
-    val month = date.month
-    val day = date.dayOfMonth
 
-    for (h in 0 .. 23){
-        for(m in 0 .. 59){
-            val steps = getStepForMinute(store, LocalDateTime.of(year, month, day, h, m))
-            if(steps != 0){
-                Log.d("SHEALTH_TEST", "STEP [$h:$m] = $steps")
-            }
-        }
-    }
+    val sDataList = store.aggregateData(request).dataList
+    //Log.d("SHEALTH_TEST", "step DataList Length = ${sDataList.size}, val=${sDataList.first().value!!}")
+
 }
 
 @Composable
@@ -378,8 +366,7 @@ fun TestScreen(activity:MainActivity, modifier: Modifier = Modifier){
                     bloodPressure = getBloodPressureData(store)
                     bodyCompositionData = getBodyComposition(store)
                     exerciseData = getExercise(store)
-
-                    getStepForDayPerMinute(store, LocalDate.now())
+                    getSteps(store)
                 }
             }){
                 Text(text = "Refresh")
