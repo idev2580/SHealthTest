@@ -30,7 +30,13 @@ open class HealthSeriesData<T>(
 
 //1. Physiological Data
 //1-1. Basic Types
-class HeartRate(min: Float, max: Float, heartRate: Float, startTime: Instant, endTime: Instant) :
+class HeartRate(
+    min: Float = 0.0f,
+    max: Float = 0.0f,
+    heartRate: Float = 0.0f,
+    startTime: Instant = Instant.now(),
+    endTime: Instant = Instant.now()
+) :
     HealthTemporalRecord<Float>(min, max, heartRate, startTime, endTime), SHealthDataSavable{
     val heartRate:Float get() = this.value
 
@@ -39,11 +45,11 @@ class HeartRate(min: Float, max: Float, heartRate: Float, startTime: Instant, en
     }
 }
 class BloodOxygen(
-    min: Float,
-    max: Float,
-    oxygenSaturation: Float,
-    startTime: Instant,
-    endTime: Instant
+    min: Float = 0.0f,
+    max: Float = 0.0f,
+    oxygenSaturation: Float = 0.0f,
+    startTime: Instant = Instant.now(),
+    endTime: Instant = Instant.now()
 ) : HealthTemporalRecord<Float>(min, max, oxygenSaturation, startTime, endTime), SHealthDataSavable{
     val oxygenSaturation:Float get() = this.value
 
@@ -111,15 +117,21 @@ data class BodyComposition(
 //1-2. Series Data
 class HeartRateSeriesData(
     seriesData:List<HeartRate>
-):HealthSeriesData<HeartRate>(seriesData){}
+):HealthSeriesData<HeartRate>(seriesData){
+    companion object {}
+}
 
 class BloodOxygenSeriesData(
     seriesData:List<BloodOxygen>
-):HealthSeriesData<BloodOxygen>(seriesData){}
+):HealthSeriesData<BloodOxygen>(seriesData){
+    companion object {}
+}
 
 class SkinTemperatureSeriesData(
     seriesData:List<SkinTemperature>
-):HealthSeriesData<SkinTemperature>(seriesData){}
+):HealthSeriesData<SkinTemperature>(seriesData){
+    companion object {}
+}
 
 class BloodGlucoseSeriesData(
     val mealStatus : String,
@@ -130,7 +142,9 @@ class BloodGlucoseSeriesData(
     val glucoseLevel : Float = Float.NaN,
     val isValueOverride:Boolean = false,
     seriesData: List<BloodGlucose>
-):HealthSeriesData<BloodGlucose>(seriesData){}
+):HealthSeriesData<BloodGlucose>(seriesData){
+    companion object {}
+}
 
 
 //2. Sleep
@@ -148,13 +162,16 @@ class Sleep(
     val sleepScore:Int,
     val sessions:List<SleepSession>
 ){
+    companion object {}
 }
 
 //3. Step
 data class Step(
     val startTime:Instant,
     val steps:Int
-)
+){
+    companion object {}
+}
 
 //4. Activity
 // -> should be Interfaces
