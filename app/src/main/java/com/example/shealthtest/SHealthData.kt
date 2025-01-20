@@ -4,6 +4,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 
+//This file was created only for testing...
+//Will be removed
+
 data class ActivitySummaryData(
     val totalActiveTime:Duration,
     val totalDistance:Float = Float.NaN,

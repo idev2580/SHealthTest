@@ -1,32 +1,80 @@
 package com.example.shealthtest
 
-import android.health.connect.datatypes.BodyFatRecord
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 
 // 0. Default Classes
-interface SHealthDataSavable{
-
+/* TODO : 내부적으로 저장하는 기능을 구현할 때 사용될 인터페이스
+ */
+interface SHealthDataSavable{}
+/* Reduce 연산을 하기 위해 Number로 변환하는 함수가 필요하여 만든 인터페이스
+ *
+ * Number를 상속해서 구현해도 되지만, Number는 Abstract class로서 TemporalRecord의 상속을 포기해야 하기 때문에
+ * Number 대신 별도의 인터페이스 만듦.
+ * */
+interface HealthReducable{
+    fun toFloat():Float
+    fun toDouble():Double
 }
+/* 기록의 시작과 끝을 저장하기 위한 클래스
+ * */
 open class TemporalRecord(
     val startTime:Instant,
-    val endTime:Instant
+    val endTime: Instant
 )
+/* 건강 데이터 중 일정 시간동안 기록하여 최소,최대,대표값이 존재하는 데이터를 나타내는 클래스
+ * 예시 : HeartRate, SkinTemperature 등
+ * */
 open class HealthTemporalRecord<T>(
     val min:T,
     val max:T,
     val value:T,
     startTime:Instant,
     endTime:Instant
-):TemporalRecord(startTime, endTime){}
+):TemporalRecord(startTime, endTime),
+    Comparable<HealthTemporalRecord<T>>,
+    HealthReducable
+        where T:Number,T:Comparable<T>{
+    override fun compareTo(other: HealthTemporalRecord<T>): Int {
+        if(this.value > other.value)
+            return 1
+        else if(this.value == other.value) return 0
+        else return -1
+    }
+    override fun toFloat(): Float {
+        return this.value.toFloat()
+    }
+    override fun toDouble(): Double {
+        return this.value.toDouble()
+    }
+}
 open class HealthPointRecord<T>(
     val value:T,
     val timestamp:Instant
-)
+): Comparable<HealthPointRecord<T>>,
+    HealthReducable
+        where T:Number,T:Comparable<T>{
+    override fun compareTo(other: HealthPointRecord<T>): Int {
+        if (this.value > other.value)
+            return 1
+        else if(this.value == other.value) return 0
+        else return 1
+    }
+    override fun toFloat(): Float {
+        return this.value.toFloat()
+    }
+    override fun toDouble(): Double {
+        return this.value.toDouble()
+    }
+}
 open class HealthSeriesData<T>(
     val seriesData: List<T>
-)
+)where T:Comparable<T>, T:HealthReducable{
+    val max:T get() = seriesData.max()
+    val min:T get() = seriesData.min()
+    val mean:Float get() = seriesData.fold(0.0f){acc:Float, it -> acc + it.toFloat()}
+}
 
 //1. Physiological Data
 //1-1. Basic Types
@@ -85,9 +133,9 @@ class BloodPressure(
     }
 }
 class BloodGlucose(glucose: Float, timestamp: Instant) :
-    HealthPointRecord<Float>(glucose, timestamp), SHealthDataSavable{
+        HealthPointRecord<Float>(glucose, timestamp),
+        SHealthDataSavable{
     val glucose:Float get() = this.value
-
     companion object{
         val UNIT:String = "mmol/L"
     }
