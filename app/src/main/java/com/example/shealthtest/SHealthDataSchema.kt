@@ -7,7 +7,11 @@ import java.time.LocalTime
 // 0. Default Classes
 /* TODO : 내부적으로 저장하는 기능을 구현할 때 사용될 인터페이스
  */
-interface SHealthDataSavable{}
+interface SHealthDataSave{
+    /*
+    fun saveAppend():Boolean
+    */
+}
 /* Reduce 연산을 하기 위해 Number로 변환하는 함수가 필요하여 만든 인터페이스
  *
  * Number를 상속해서 구현해도 되지만, Number는 Abstract class로서 TemporalRecord의 상속을 포기해야 하기 때문에
@@ -85,7 +89,7 @@ class HeartRate(
     startTime: Instant = Instant.now(),
     endTime: Instant = Instant.now()
 ) :
-    HealthTemporalRecord<Float>(min, max, heartRate, startTime, endTime), SHealthDataSavable{
+    HealthTemporalRecord<Float>(min, max, heartRate, startTime, endTime), SHealthDataSave{
     val heartRate:Float get() = this.value
 
     companion object{
@@ -98,7 +102,7 @@ class BloodOxygen(
     oxygenSaturation: Float = 0.0f,
     startTime: Instant = Instant.now(),
     endTime: Instant = Instant.now()
-) : HealthTemporalRecord<Float>(min, max, oxygenSaturation, startTime, endTime), SHealthDataSavable{
+) : HealthTemporalRecord<Float>(min, max, oxygenSaturation, startTime, endTime), SHealthDataSave{
     val oxygenSaturation:Float get() = this.value
 
     companion object{
@@ -111,7 +115,7 @@ class SkinTemperature(
     skinTemperature: Float,
     startTime: Instant,
     endTime: Instant
-) : HealthTemporalRecord<Float>(min, max, skinTemperature, startTime, endTime), SHealthDataSavable{
+) : HealthTemporalRecord<Float>(min, max, skinTemperature, startTime, endTime), SHealthDataSave{
     val skinTemperature:Float get() = this.value
 
     companion object{
@@ -125,7 +129,7 @@ class BloodPressure(
     val pulseRate:Int,
     val medicationTaken:Boolean,
     val timestamp:Instant
-):SHealthDataSavable{
+):SHealthDataSave{
 
     companion object{
         val PRESSURE_UNIT:String = "mmHg"
@@ -134,7 +138,7 @@ class BloodPressure(
 }
 class BloodGlucose(glucose: Float, timestamp: Instant) :
         HealthPointRecord<Float>(glucose, timestamp),
-        SHealthDataSavable{
+        SHealthDataSave{
     val glucose:Float get() = this.value
     companion object{
         val UNIT:String = "mmol/L"
@@ -239,7 +243,11 @@ class ActiveTimeGoal(
 ):HealthGoal<Duration>(
     goalSetDate, value,
     isDefaultGoal, "ActiveTimeGoal"
-){}
+){
+    companion object{
+
+    }
+}
 class ActiveCaloriesBurnedGoal(
     goalSetDate:Instant,
     value:Int,
@@ -247,7 +255,11 @@ class ActiveCaloriesBurnedGoal(
 ):HealthGoal<Int>(
     goalSetDate, value,
     isDefaultGoal, "ActiveCaloriesBurnedGoal"
-){}
+){
+    companion object{
+        val UNIT:String = "kcal"
+    }
+}
 class StepsGoal(
     goalSetDate:Instant,
     value:Int,
@@ -255,7 +267,11 @@ class StepsGoal(
 ):HealthGoal<Int>(
     goalSetDate, value,
     isDefaultGoal, "StepsGoal"
-){}
+){
+    companion object{
+        val UNIT:String = "steps"
+    }
+}
 class WaterIntakeGoal(
     goalSetDate:Instant,
     value:Float,
@@ -263,7 +279,11 @@ class WaterIntakeGoal(
 ):HealthGoal<Float>(
     goalSetDate, value,
     isDefaultGoal, "WaterIntakeGoal"
-){}
+){
+    companion object{
+        val UNIT:String = "mL"
+    }
+}
 
 data class SleepGoalData(
     val bedTime:LocalTime = LocalTime.ofSecondOfDay(0),
@@ -278,4 +298,6 @@ class SleepGoal(
     value,
     isDefaultGoal,
     "SleepGoal"
-){}
+){
+    companion object{}
+}

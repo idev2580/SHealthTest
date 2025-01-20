@@ -16,6 +16,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.util.Optional
 
 suspend fun checkAndRequestPermissions(context: Context, activity:MainActivity, permSet:Set<Permission>){
     val store: HealthDataStore = HealthDataService.getStore(context)
@@ -521,4 +524,81 @@ suspend fun Step.Companion.loadFromStore(
         }
     }
     return stepList
+}
+
+//Goal Type들은
+// 1. 단순한 load 대신 update를,
+// 2. 리스트 대신 Optional을 리턴하도록 한다.
+//이는 목표가 바뀌었는지를 추적하기 위함이다.
+suspend fun ActiveTimeGoal.Companion.updateFromStore(
+    store:HealthDataStore,
+    originalGoal:ActiveTimeGoal? = null
+): Optional<ActiveTimeGoal> {
+    val startDate:LocalDate =
+        if(originalGoal != null)
+            ZonedDateTime.ofInstant(originalGoal.goalSetDate, ZoneId.systemDefault()).toLocalDate()
+        else
+            LocalDate.now().minusDays(1)
+
+    val request = DataType.ActiveTimeGoalType
+        .LAST.requestBuilder
+        .setLocalDateFilter(LocalDateFilter.since(startDate))
+        .setOrdering(Ordering.DESC)
+        .build()
+
+    val dataList = store.aggregateData(request).dataList
+    if(dataList.isEmpty()){
+        return Optional.empty()
+    }
+
+    val isCertainlyDefault = dataList.first().value == null
+    val defaultValue = Duration.ofMillis(0) //TODO : Have to find default value for this.
+    val goalValue = dataList.first().value?: Duration.ofMillis(0)
+    val goalSetTime = dataList.first().startTime
+    val isDefault = isCertainlyDefault || goalValue == defaultValue
+
+    if(originalGoal != null){
+        if(originalGoal.goalSetDate >= goalSetTime){
+            return Optional.empty()
+        }
+    }
+    return Optional.of(
+        ActiveTimeGoal(
+            goalSetTime,
+            goalValue,
+            isDefault
+        )
+    )
+}
+suspend fun ActiveCaloriesBurnedGoal.Companion.updateFromStore(
+    store:HealthDataStore,
+    originalGoal:ActiveCaloriesBurnedGoal?,
+    startDate:LocalDate = LocalDate.now().minusDays(1),
+    endDate:LocalDate = LocalDate.now()
+): Optional<ActiveCaloriesBurnedGoal> {
+
+}
+suspend fun StepsGoal.Companion.updateFromStore(
+    store:HealthDataStore,
+    originalGoal:StepsGoal?,
+    startDate:LocalDate = LocalDate.now().minusDays(1),
+    endDate:LocalDate = LocalDate.now()
+):Optional<StepsGoal>{
+
+}
+suspend fun WaterIntakeGoal.Companion.updateFromStore(
+    store:HealthDataStore,
+    originalGoal:WaterIntakeGoal?,
+    startDate:LocalDate = LocalDate.now().minusDays(1),
+    endDate:LocalDate = LocalDate.now()
+):Optional<WaterIntakeGoal>{
+
+}
+suspend fun SleepGoal.Companion.updateFromStore(
+    store:HealthDataStore,
+    originalGoal:SleepGoal?,
+    startDate:LocalDate = LocalDate.now().minusDays(1),
+    endDate:LocalDate = LocalDate.now()
+):Optional<SleepGoal>{
+
 }
