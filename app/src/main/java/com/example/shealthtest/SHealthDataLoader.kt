@@ -19,6 +19,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.Optional
+import kotlin.reflect.KClass
 
 suspend fun checkAndRequestPermissions(context: Context, activity:MainActivity, permSet:Set<Permission>){
     val store: HealthDataStore = HealthDataService.getStore(context)
@@ -116,31 +117,39 @@ class HealthTemporalAggregateRecordLoader<T:HealthTemporalAggregateRecord<*>>(
         val dataList = store.readData(request).dataList
         val readDataList:MutableList<T> = mutableListOf()
         dataList.forEach{
-            val series = it.getValue(
-                when(sample){
-                    is HeartRate -> DataType.HeartRateType.SERIES_DATA
-                    is BloodOxygen -> DataType.BloodOxygenType.SERIES_DATA
-                    is SkinTemperature -> DataType.SkinTemperatureType.SERIES_DATA
-                    else -> throw Exception("INVALID TYPE") //TODO : Make an exception class for this work...
+            when(sample){
+                is HeartRate -> it.getValue(DataType.HeartRateType.SERIES_DATA)?.forEach{
+                    val data = HeartRate(
+                        min = it.min,
+                        max = it.max,
+                        heartRate = it.heartRate,
+                        startTime = it.startTime,
+                        endTime = it.endTime
+                    )
+                    readDataList.add(data as T)
                 }
-            )
-            //No solution?
-            //-> Build & Autocomplete always fail here, due to un-intended type inference
-            /*series?.forEach{
-                val data:T = when(sample){
-                    is HeartRate -> HeartRate(
-                        min: it.min
+                is BloodOxygen -> it.getValue(DataType.BloodOxygenType.SERIES_DATA)?.forEach{
+                    val data = BloodOxygen(
+                        min = it.min,
+                        max = it.max,
+                        oxygenSaturation = it.oxygenSaturation,
+                        startTime = it.startTime,
+                        endTime = it.endTime
                     )
-                    is BloodOxygen -> BloodOxygen(
-
-                    )
-                    is SkinTemperature -> SkinTemperature(
-
-                    )
-                    else -> throw Exception("INVALID TYPE") //TODO : Make an exception class for this work...
+                    readDataList.add(data as T)
                 }
-                readDataList.add(data)
-            }*/
+                is SkinTemperature -> it.getValue(DataType.SkinTemperatureType.SERIES_DATA)?.forEach{
+                    val data = SkinTemperature(
+                        min = it.min,
+                        max = it.max,
+                        skinTemperature = it.skinTemperature,
+                        startTime = it.startTime,
+                        endTime = it.endTime
+                    )
+                    readDataList.add(data as T)
+                }
+                else -> throw Exception("INVALID TYPE")//TODO : Make an exception class for this work...
+            }
         }
         return readDataList
     }
@@ -150,7 +159,6 @@ class HealthTemporalAggregateRecordLoader<T:HealthTemporalAggregateRecord<*>>(
         unitMinute: Int
     ): List<T> {
         //For temporalAggregateRecords, unitMinute won't work.
-
         return this.loadFromStore(startTime, endTime)
     }
 }
