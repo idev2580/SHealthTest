@@ -17,7 +17,7 @@ interface SHealthDataSave{
  * Number를 상속해서 구현해도 되지만, Number는 Abstract class로서 TemporalRecord의 상속을 포기해야 하기 때문에
  * Number 대신 별도의 인터페이스 만듦.
  * */
-interface HealthReducable{
+interface HealthReducableRecord{
     fun toFloat():Float
     fun toDouble():Double
 }
@@ -31,21 +31,28 @@ open class TemporalRecord(
  * 예시 : HeartRate, SkinTemperature 등
  * */
 open class HealthTemporalRecord<T>(
-    val min:T,
-    val max:T,
     val value:T,
     startTime:Instant,
     endTime:Instant
 ):TemporalRecord(startTime, endTime),
-    Comparable<HealthTemporalRecord<T>>,
-    HealthReducable
-        where T:Number,T:Comparable<T>{
+    Comparable<HealthTemporalRecord<T>>
+        where T:Comparable<T>{
     override fun compareTo(other: HealthTemporalRecord<T>): Int {
         if(this.value > other.value)
             return 1
         else if(this.value == other.value) return 0
         else return -1
     }
+}
+open class HealthTemporalAggregateRecord<T>(
+    val min:T,
+    val max:T,
+    value:T,
+    startTime:Instant,
+    endTime:Instant
+):HealthReducableRecord,
+    HealthTemporalRecord<T>(value, startTime, endTime)
+        where T:Number,T:Comparable<T>{
     override fun toFloat(): Float {
         return this.value.toFloat()
     }
@@ -56,28 +63,14 @@ open class HealthTemporalRecord<T>(
 open class HealthPointRecord<T>(
     val value:T,
     val timestamp:Instant
-): Comparable<HealthPointRecord<T>>,
-    HealthReducable
-        where T:Number,T:Comparable<T>{
+): Comparable<HealthPointRecord<T>>
+        where T:Comparable<T>{
     override fun compareTo(other: HealthPointRecord<T>): Int {
         if (this.value > other.value)
             return 1
         else if(this.value == other.value) return 0
         else return 1
     }
-    override fun toFloat(): Float {
-        return this.value.toFloat()
-    }
-    override fun toDouble(): Double {
-        return this.value.toDouble()
-    }
-}
-open class HealthSeriesData<T>(
-    val seriesData: List<T>
-)where T:Comparable<T>, T:HealthReducable{
-    val max:T get() = seriesData.max()
-    val min:T get() = seriesData.min()
-    val mean:Float get() = seriesData.fold(0.0f){acc:Float, it -> acc + it.toFloat()}
 }
 
 //1. Physiological Data
@@ -89,7 +82,7 @@ class HeartRate(
     startTime: Instant = Instant.now(),
     endTime: Instant = Instant.now()
 ) :
-    HealthTemporalRecord<Float>(min, max, heartRate, startTime, endTime), SHealthDataSave{
+    HealthTemporalAggregateRecord<Float>(min, max, heartRate, startTime, endTime), SHealthDataSave{
     val heartRate:Float get() = this.value
 
     companion object{
@@ -102,7 +95,7 @@ class BloodOxygen(
     oxygenSaturation: Float = 0.0f,
     startTime: Instant = Instant.now(),
     endTime: Instant = Instant.now()
-) : HealthTemporalRecord<Float>(min, max, oxygenSaturation, startTime, endTime), SHealthDataSave{
+) : HealthTemporalAggregateRecord<Float>(min, max, oxygenSaturation, startTime, endTime), SHealthDataSave{
     val oxygenSaturation:Float get() = this.value
 
     companion object{
@@ -115,7 +108,7 @@ class SkinTemperature(
     skinTemperature: Float,
     startTime: Instant,
     endTime: Instant
-) : HealthTemporalRecord<Float>(min, max, skinTemperature, startTime, endTime), SHealthDataSave{
+) : HealthTemporalAggregateRecord<Float>(min, max, skinTemperature, startTime, endTime), SHealthDataSave{
     val skinTemperature:Float get() = this.value
 
     companion object{
@@ -124,17 +117,17 @@ class SkinTemperature(
 }
 class BloodPressure(
     val diastolic:Float,
-    val mean:Float,
+    mean:Float,
     val systolic:Float,
     val pulseRate:Int,
     val medicationTaken:Boolean,
-    val timestamp:Instant
-):SHealthDataSave{
-
+    timestamp:Instant
+):SHealthDataSave, HealthPointRecord<Float>(mean, timestamp){
     companion object{
         val PRESSURE_UNIT:String = "mmHg"
         val RATE_UNIT:String = "bpm"    //Need to check with dataset.
     }
+    val mean:Float get() = this.value
 }
 class BloodGlucose(glucose: Float, timestamp: Instant) :
         HealthPointRecord<Float>(glucose, timestamp),
@@ -166,37 +159,6 @@ data class BodyComposition(
         val MASS_UNIT:String = "kg"
     }
 }
-//1-2. Series Data
-class HeartRateSeriesData(
-    seriesData:List<HeartRate>
-):HealthSeriesData<HeartRate>(seriesData){
-    companion object {}
-}
-
-class BloodOxygenSeriesData(
-    seriesData:List<BloodOxygen>
-):HealthSeriesData<BloodOxygen>(seriesData){
-    companion object {}
-}
-
-class SkinTemperatureSeriesData(
-    seriesData:List<SkinTemperature>
-):HealthSeriesData<SkinTemperature>(seriesData){
-    companion object {}
-}
-
-class BloodGlucoseSeriesData(
-    val mealStatus : String,
-    val mealTime : Instant,
-    val measurement : String,
-    val sampleSource : String,
-    val insulinInjected : Float = Float.NaN,
-    val glucoseLevel : Float = Float.NaN,
-    val isValueOverride:Boolean = false,
-    seriesData: List<BloodGlucose>
-):HealthSeriesData<BloodGlucose>(seriesData){
-    companion object {}
-}
 
 
 //2. Sleep
@@ -205,23 +167,14 @@ class SleepStage(
     startTime:Instant,
     endTime:Instant
 ):TemporalRecord(startTime, endTime){}
-class SleepSession(
-    val sessions:List<SleepStage>,
-    startTime:Instant,
-    endTime:Instant
-):TemporalRecord(startTime, endTime){}
-class Sleep(
-    val sleepScore:Int,
-    val sessions:List<SleepSession>
-){
-    companion object {}
-}
 
 //3. Step
-data class Step(
-    val startTime:Instant,
-    val steps:Int
-){
+class Step(
+    steps:Int,
+    startTime:Instant,
+    endTime:Instant,
+):HealthTemporalRecord<Int>(steps, startTime, endTime){
+    val steps : Int get() = this.value
     companion object {}
 }
 

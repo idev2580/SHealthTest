@@ -40,208 +40,137 @@ fun getTodayTimeFilter(): LocalTimeFilter {
     val localtimeFilter = LocalTimeFilter.of(sDate, eDate)
     return localtimeFilter
 }
-suspend fun getActivitySummaryData(store: HealthDataStore):ActivitySummaryData{
-    val timeFilter = getTodayTimeFilter()
-
-    val distReadRequest = DataType.ActivitySummaryType
-        .TOTAL_DISTANCE
-        .requestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val aTimeReadRequest = DataType.ActivitySummaryType
-        .TOTAL_ACTIVE_TIME
-        .requestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val cBurnReadRequest = DataType.ActivitySummaryType
-        .TOTAL_CALORIES_BURNED
-        .requestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val acBurnReadRequest = DataType.ActivitySummaryType
-        .TOTAL_ACTIVE_CALORIES_BURNED
-        .requestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-
-
-    val distDataList = store.aggregateData(distReadRequest).dataList
-    val aTimeDataList = store.aggregateData(aTimeReadRequest).dataList
-    val cBurnDataList = store.aggregateData(cBurnReadRequest).dataList
-    val acBurnDataList = store.aggregateData(acBurnReadRequest).dataList
-
-    if(distDataList.isEmpty())
-        return ActivitySummaryData(Duration.ofMillis(0))
-
-    Log.d("SHEALTH_TEST", "cBurnDataList.length = ${cBurnDataList.size}")
-
-
-    val totalDistance:Float = distDataList.first().value!!
-    val totalActiveTime: Duration = aTimeDataList.first().value!!
-    val caloriesBurned:Float = cBurnDataList.first().value!!
-    val activeCaloriesBurned:Float = acBurnDataList.first().value!!
-
-    return ActivitySummaryData(totalActiveTime,totalDistance, caloriesBurned, activeCaloriesBurned)
-}
-suspend fun getActiveCaloriesBurnedGoalData(store: HealthDataStore):Int{
-    val request = DataType.ActiveCaloriesBurnedGoalType
-        .LAST
-        .requestBuilder
-        .setLocalDateFilter(LocalDateFilter.since(LocalDate.now()))
-        .setOrdering(Ordering.DESC)
-        .build()
-    val dataList = store.aggregateData(request).dataList
-    if(dataList.isEmpty())
-        return 0
-    val value:Int = dataList.first().value!!
-    return value
-}
-suspend fun getActiveTimeGoalData(store: HealthDataStore): Duration {
-    val request = DataType.ActiveTimeGoalType
-        .LAST
-        .requestBuilder
-        .setLocalDateFilter(LocalDateFilter.since(LocalDate.now()))
-        .setOrdering(Ordering.DESC)
-        .build()
-    val dataList = store.aggregateData(request).dataList
-    if(dataList.isEmpty())
-        return Duration.ofMillis(0)
-    val value = dataList.first().value!!
-    return value
-}
-suspend fun getBloodGlucoseData(store: HealthDataStore):BloodGlucoseData{
-    val timeFilter = getTodayTimeFilter()
-    val request = DataTypes.BLOOD_GLUCOSE
-        .readDataRequestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val dataList = store.readData(request).dataList
-    if(dataList.isEmpty())
-        return BloodGlucoseData()
-    val glucoseLvl:Float = dataList.first().getValue(DataType.BloodGlucoseType.GLUCOSE_LEVEL)!!
-    val mealTime: Instant = dataList.first().getValue(DataType.BloodGlucoseType.MEAL_TIME)!!
-    val inInsulin:Float = dataList.first().getValue(DataType.BloodGlucoseType.INSULIN_INJECTED)!!
-    //val mealStatus: DataType.BloodGlucoseType.MealStatus = dataList.first().getValue(DataType.BloodGlucoseType.MEAL_STATUS)!!
-
-    return BloodGlucoseData(glucoseLvl, mealTime, inInsulin)
-}
-suspend fun getBloodOxygenData(store: HealthDataStore):BloodOxygenData{
-    val timeFilter = getTodayTimeFilter()
-    val request = DataTypes.BLOOD_OXYGEN
-        .readDataRequestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val dataList = store.readData(request).dataList
-    if(dataList.isEmpty())
-        return BloodOxygenData()
-
-    return BloodOxygenData(
-        dataList.first().getValue(DataType.BloodOxygenType.OXYGEN_SATURATION)!!,
-        dataList.first().getValue(DataType.BloodOxygenType.MIN_OXYGEN_SATURATION)!!,
-        dataList.first().getValue(DataType.BloodOxygenType.MAX_OXYGEN_SATURATION)!!
-    )
-}
-suspend fun getBloodPressureData(store: HealthDataStore):BloodPressureData{
-    val timeFilter = getTodayTimeFilter()
-    val request = DataTypes.BLOOD_PRESSURE
-        .readDataRequestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val dataList = store.readData(request).dataList
-    if(dataList.isEmpty())
-        return BloodPressureData()
-    return BloodPressureData(
-        dataList.first().getValue(DataType.BloodPressureType.MEAN)!!,
-        dataList.first().getValue(DataType.BloodPressureType.SYSTOLIC)!!,
-        dataList.first().getValue(DataType.BloodPressureType.DIASTOLIC)!!,
-        dataList.first().getValue(DataType.BloodPressureType.PULSE_RATE)!!,
-        dataList.first().getValue(DataType.BloodPressureType.MEDICATION_TAKEN)!!
-    )
-}
-suspend fun getBodyComposition(store: HealthDataStore):BodyCompositionData{
-    val timeFilter = getTodayTimeFilter()
-    val request = DataTypes.BODY_COMPOSITION
-        .readDataRequestBuilder
-        //.setLocalTimeFilter(timeFilter)   //이걸 넣어버리면 오늘 내로 입력한 정보만 들어가니까
-        .setOrdering(Ordering.DESC)
-        .build()
-    val dataList = store.readData(request).dataList
-    if(dataList.isEmpty())
-        return BodyCompositionData()
-
-    val data = dataList.first()
-    return BodyCompositionData(
-        basalMetabolicRate = data.getValue(DataType.BodyCompositionType.BASAL_METABOLIC_RATE)?:0,
-        bodyFat = data.getValue(DataType.BodyCompositionType.BODY_FAT)?:Float.NaN,
-        bodyFatMass = data.getValue(DataType.BodyCompositionType.BODY_FAT_MASS)?:Float.NaN,
-        bodyMassIndex = data.getValue(DataType.BodyCompositionType.BODY_MASS_INDEX)?:Float.NaN,
-        fatFree = data.getValue(DataType.BodyCompositionType.FAT_FREE)?:Float.NaN,
-        fatFreeMass = data.getValue(DataType.BodyCompositionType.FAT_FREE_MASS)?:Float.NaN,
-        height = data.getValue(DataType.BodyCompositionType.HEIGHT)?:Float.NaN,
-        muscleMass = data.getValue(DataType.BodyCompositionType.MUSCLE_MASS)?:Float.NaN,
-        skeletalMuscle = data.getValue(DataType.BodyCompositionType.SKELETAL_MUSCLE)?:Float.NaN,
-        skeletalMuscleMass = data.getValue(DataType.BodyCompositionType.SKELETAL_MUSCLE_MASS)?:Float.NaN,
-        totalBodyWater = data.getValue(DataType.BodyCompositionType.TOTAL_BODY_WATER)?:Float.NaN,
-        weight = data.getValue(DataType.BodyCompositionType.WEIGHT)?:Float.NaN
-    )
-}
-suspend fun getExercise(store: HealthDataStore):ExerciseData{
-    val timeFilter = getTodayTimeFilter()
-    val request = DataTypes.EXERCISE
-        .readDataRequestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val tCalReq = DataType.ExerciseType.TOTAL_CALORIES
-        .requestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-    val tDurReq = DataType.ExerciseType.TOTAL_DURATION
-        .requestBuilder
-        .setLocalDateFilter(LocalDateFilter.since(LocalDate.now()))
-        .setOrdering(Ordering.DESC)
-        .build()
-
-    val eDataList = store.readData(request).dataList
-    if(eDataList.isEmpty())
-        return ExerciseData()
-
-    val eTitle = store.readData(request).dataList.first().getValue(DataType.ExerciseType.CUSTOM_TITLE)!!
-    val totalCalories = store.aggregateData(tCalReq).dataList.first().value!!
-    val totalDuration = store.aggregateData(tDurReq).dataList.first().value!!
-
-    return ExerciseData(
-        title = eTitle,
-        totalCalories = totalCalories,
-        totalDuration = totalDuration
-    )
-}
-suspend fun getSteps(store: HealthDataStore){
-    val timeFilter = LocalTimeFilter.of(
-        LocalDateTime.of(2025,1,15,17,50),
-        LocalDateTime.of(2025,1,15,17,51)
-    )
-
-    val request = DataType.StepsType.TOTAL
-        .requestBuilder
-        .setLocalTimeFilter(timeFilter)
-        .setOrdering(Ordering.DESC)
-        .build()
-
-    val sDataList = store.aggregateData(request).dataList
-    //Log.d("SHEALTH_TEST", "step DataList Length = ${sDataList.size}, val=${sDataList.first().value!!}")
-
-}
 
 // Data Load Functions
+abstract class HealthDataLoader<T>(
+    val store:HealthDataStore,
+    val sample:T
+){
+    companion object{
+        fun getEnumString(enumVal:DataType.BloodGlucoseType.MealStatus):String{
+            return when(enumVal){
+                DataType.BloodGlucoseType.MealStatus.UNDEFINED -> "UNDEFINED"
+                DataType.BloodGlucoseType.MealStatus.FASTING -> "FASTING"
+                DataType.BloodGlucoseType.MealStatus.AFTER_MEAL -> "AFTER_MEAL"
+                DataType.BloodGlucoseType.MealStatus.BEFORE_BREAKFAST -> "BEFORE_BREAKFAST"
+                DataType.BloodGlucoseType.MealStatus.AFTER_BREAKFAST -> "AFTER_BREAKFAST"
+                DataType.BloodGlucoseType.MealStatus.BEFORE_LUNCH -> "BEFORE_LUNCH"
+                DataType.BloodGlucoseType.MealStatus.AFTER_LUNCH -> "AFTER_LUNCH"
+                DataType.BloodGlucoseType.MealStatus.BEFORE_DINNER -> "BEFORE_DINNER"
+                DataType.BloodGlucoseType.MealStatus.AFTER_DINNER -> "AFTER_DINNER"
+                DataType.BloodGlucoseType.MealStatus.AFTER_SNACK -> "AFTER_SNACK"
+                DataType.BloodGlucoseType.MealStatus.BEFORE_MEAL -> "BEFORE_MEAL"
+                DataType.BloodGlucoseType.MealStatus.GENERAL -> "GENERAL"
+                DataType.BloodGlucoseType.MealStatus.BEFORE_SLEEP -> "BEFORE_SLEEP"
+                else -> "UNDEFINED"
+            }
+        }
+        fun getEnumString(enumVal:DataType.BloodGlucoseType.MeasurementType):String{
+            return when(enumVal){
+                DataType.BloodGlucoseType.MeasurementType.UNDEFINED -> "UNDEFINED"
+                DataType.BloodGlucoseType.MeasurementType.WHOLE_BLOOD -> "WHOLE_BLOOD"
+                DataType.BloodGlucoseType.MeasurementType.PLASMA -> "PLASMA"
+                DataType.BloodGlucoseType.MeasurementType.SERUM -> "SERUM"
+                else -> "UNDEFINED"
+            }
+        }
+        fun getEnumString(enumVal:DataType.BloodGlucoseType.SampleSourceType):String {
+            return when (enumVal) {
+                DataType.BloodGlucoseType.SampleSourceType.UNDEFINED -> "UNDEFINED"
+                DataType.BloodGlucoseType.SampleSourceType.VENOUS -> "VENOUS"
+                DataType.BloodGlucoseType.SampleSourceType.CAPILLARY -> "CAPILLARY"
+                else -> "UNDEFINED"
+            }
+        }
+    }
+    abstract suspend fun loadFromStore(
+        startTime:LocalDateTime,
+        endTime : LocalDateTime = LocalDateTime.now()
+    ):List<T>
+    abstract suspend fun loadFromStore(
+        startTime:LocalDateTime,
+        endTime : LocalDateTime = LocalDateTime.now(),
+        unitMinute : Int = 10
+    ):List<T>
+}
+class HealthTemporalAggregateRecordLoader<T:HealthTemporalAggregateRecord<*>>(
+    store:HealthDataStore,
+    sample:T
+):HealthDataLoader<T>(store,sample){
+    override suspend fun loadFromStore(
+        startTime:LocalDateTime,
+        endTime : LocalDateTime,
+    ):List<T>{
+        val timeFilter = LocalTimeFilter.of(startTime, endTime)
+        val sHealthDataType = when(sample){
+            is HeartRate -> DataTypes.HEART_RATE
+            is BloodOxygen -> DataTypes.BLOOD_OXYGEN
+            is SkinTemperature -> DataTypes.SKIN_TEMPERATURE
+            else -> throw Exception("INVALID TYPE") //TODO : Make an exception class for this work...
+        }
+        val request = sHealthDataType
+            .readDataRequestBuilder
+            .setLocalTimeFilter(timeFilter)
+            .setOrdering(Ordering.ASC)
+            .build()
+        val dataList = store.readData(request).dataList
+        val readDataList:MutableList<T> = mutableListOf()
+        dataList.forEach{
+            val series = it.getValue(
+                when(sample){
+                    is HeartRate -> DataType.HeartRateType.SERIES_DATA
+                    is BloodOxygen -> DataType.BloodOxygenType.SERIES_DATA
+                    is SkinTemperature -> DataType.SkinTemperatureType.SERIES_DATA
+                    else -> throw Exception("INVALID TYPE") //TODO : Make an exception class for this work...
+                }
+            )
+            //No solution?
+            //-> Build & Autocomplete always fail here, due to un-intended type inference
+            /*series?.forEach{
+                val data:T = when(sample){
+                    is HeartRate -> HeartRate(
+                        min: it.min
+                    )
+                    is BloodOxygen -> BloodOxygen(
+
+                    )
+                    is SkinTemperature -> SkinTemperature(
+
+                    )
+                    else -> throw Exception("INVALID TYPE") //TODO : Make an exception class for this work...
+                }
+                readDataList.add(data)
+            }*/
+        }
+        return readDataList
+    }
+    override suspend fun loadFromStore(
+        startTime: LocalDateTime,
+        endTime: LocalDateTime,
+        unitMinute: Int
+    ): List<T> {
+        //For temporalAggregateRecords, unitMinute won't work.
+
+        return this.loadFromStore(startTime, endTime)
+    }
+}
+class HealthTemporalRecordLoader<T:HealthTemporalRecord<*>>(
+    store:HealthDataStore,
+    sample:T    //How to remove this?
+):HealthDataLoader<T>(store,sample){
+    override suspend fun loadFromStore(startTime: LocalDateTime, endTime: LocalDateTime): List<T> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun loadFromStore(
+        startTime: LocalDateTime,
+        endTime: LocalDateTime,
+        unitMinute: Int
+    ): List<T> {
+        TODO("Not yet implemented")
+    }
+}
+/*
 suspend fun HeartRateSeriesData.Companion.loadFromStore(
     store:HealthDataStore,
     startTime:LocalDateTime,
@@ -312,12 +241,12 @@ suspend fun BloodOxygenSeriesData.Companion.loadFromStore(
         seriesDataList.add(bos)
     }
     return seriesDataList
-}
-suspend fun SkinTemperatureSeriesData.Companion.loadFromStore(
+}*/
+suspend fun SkinTemperatureSeriesDataloadFromStore(
     store: HealthDataStore,
     startTime: LocalDateTime,
     endTime: LocalDateTime
-):List<com.example.shealthtest.SkinTemperatureSeriesData>{
+){
     val timeFilter = LocalTimeFilter.of(
         startTime, endTime
     )
@@ -327,7 +256,7 @@ suspend fun SkinTemperatureSeriesData.Companion.loadFromStore(
         .setOrdering(Ordering.ASC)
         .build()
     val dataList = store.readData(request).dataList
-    val seriesDataList:MutableList<SkinTemperatureSeriesData> = mutableListOf()
+    //val seriesDataList:MutableList<SkinTemperatureSeriesData> = mutableListOf()
     dataList.forEach {
         val seriesPoint = it.getValue(DataType.SkinTemperatureType.SERIES_DATA)
         val seriesData:MutableList<com.example.shealthtest.SkinTemperature> = mutableListOf()
@@ -341,13 +270,14 @@ suspend fun SkinTemperatureSeriesData.Companion.loadFromStore(
             )
             seriesData.add(st)
         }
-        val sts:SkinTemperatureSeriesData = SkinTemperatureSeriesData(
-            seriesData
-        )
-        seriesDataList.add(sts)
+        //val sts:SkinTemperatureSeriesData = SkinTemperatureSeriesData(
+        //    seriesData
+        //)
+        //seriesDataList.add(sts)
     }
-    return seriesDataList
+    //return seriesDataList
 }
+/*
 suspend fun BloodGlucoseSeriesData.Companion.loadFromStore(
     store: HealthDataStore,
     startTime: LocalDateTime,
@@ -356,7 +286,7 @@ suspend fun BloodGlucoseSeriesData.Companion.loadFromStore(
     val timeFilter = LocalTimeFilter.of(
         startTime, endTime
     )
-    val request = DataTypes.SKIN_TEMPERATURE
+    val request = DataTypes.BLOOD_GLUCOSE
         .readDataRequestBuilder
         .setLocalTimeFilter(timeFilter)
         .setOrdering(Ordering.ASC)
@@ -601,4 +531,4 @@ suspend fun SleepGoal.Companion.updateFromStore(
     endDate:LocalDate = LocalDate.now()
 ):Optional<SleepGoal>{
 
-}
+}*/

@@ -98,7 +98,7 @@ fun TestScreen(activity:MainActivity, modifier: Modifier = Modifier){
         Permission.of(DataTypes.WATER_INTAKE_GOAL, AccessType.READ)
     )
     var nowString:String by remember {mutableStateOf(LocalDateTime.now().toString())};
-    var activitySummary:ActivitySummaryData by remember {
+    /*var activitySummary:ActivitySummaryData by remember {
         mutableStateOf(
             ActivitySummaryData(Duration.ofMillis(0), 0.0f, 0.0f, 0.0f)
         )
@@ -109,7 +109,7 @@ fun TestScreen(activity:MainActivity, modifier: Modifier = Modifier){
     var bloodOxygen by remember {mutableStateOf(BloodOxygenData())}
     var bloodPressure by remember { mutableStateOf(BloodPressureData())}
     var bodyCompositionData by remember { mutableStateOf(BodyCompositionData())}
-    var exerciseData by remember { mutableStateOf(ExerciseData())}
+    var exerciseData by remember { mutableStateOf(ExerciseData())}*/
 
     val scope = rememberCoroutineScope();
 
@@ -137,7 +137,7 @@ fun TestScreen(activity:MainActivity, modifier: Modifier = Modifier){
 
                 //2. Get real data
                 scope.launch {
-                    activitySummary = getActivitySummaryData(store)
+                    /*activitySummary = getActivitySummaryData(store)
                     activeCaloriesBurnedGoal = getActiveCaloriesBurnedGoalData(store)
                     activeTimeGoal = getActiveTimeGoalData(store)
                     bloodGlucose = getBloodGlucoseData(store)
@@ -145,7 +145,7 @@ fun TestScreen(activity:MainActivity, modifier: Modifier = Modifier){
                     bloodPressure = getBloodPressureData(store)
                     bodyCompositionData = getBodyComposition(store)
                     exerciseData = getExercise(store)
-                    getSteps(store)
+                    getSteps(store)*/
                 }
             }){
                 Text(text = "Refresh")
@@ -155,11 +155,11 @@ fun TestScreen(activity:MainActivity, modifier: Modifier = Modifier){
             text = "Now : $nowString"
         )
 
-        ActivitySummaryWidget(activitySummary, modifier=Modifier.fillMaxWidth())
+        /*ActivitySummaryWidget(activitySummary, modifier=Modifier.fillMaxWidth())
         SummaryWidget("Active Calories Burned Goal", modifier=Modifier.fillMaxWidth()){
             Text(text = "$activeCaloriesBurnedGoal (kcal)")
         }
-        BodyCompositionWidget(bodyCompositionData, modifier=Modifier.fillMaxWidth())
+        BodyCompositionWidget(bodyCompositionData, modifier=Modifier.fillMaxWidth())*/
     }
 }
 @Composable
@@ -197,7 +197,7 @@ fun ValueUnit(
         Text(text = "$unitText")
     }
 }
-@Composable
+/*@Composable
 fun ActivitySummaryWidget(activitySummary:ActivitySummaryData, modifier:Modifier = Modifier){
     SummaryWidget("Activity Summary", modifier){
         ValueUnit("${activitySummary.totalActiveTime.seconds}","Active time", "sec")
@@ -213,4 +213,4 @@ fun BodyCompositionWidget(bodyComposition:BodyCompositionData, modifier:Modifier
         ValueUnit("${bodyComposition.bodyFat}", "Body Fat")
         ValueUnit("${bodyComposition.bodyFatMass}", "Body Fat Mass")
     }
-}
+}*/
